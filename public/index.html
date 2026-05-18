@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTP Web 工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 FTP Web 工具</h1>
+        </header>
+
+        <!-- 连接面板 -->
+        <div class="connection-panel" id="connectionPanel">
+            <h2>连接到FTP服务器</h2>
+            <div class="form-group">
+                <label>服务器地址:</label>
+                <input type="text" id="host" placeholder="例如: ftp.example.com" value="">
+            </div>
+            <div class="form-group">
+                <label>端口:</label>
+                <input type="number" id="port" placeholder="21" value="21">
+            </div>
+            <div class="form-group">
+                <label>用户名:</label>
+                <input type="text" id="user" placeholder="用户名" value="root">
+            </div>
+            <div class="form-group">
+                <label>密码:</label>
+                <input type="password" id="password" placeholder="密码" value="root">
+            </div>
+            <button onclick="connect()" class="btn-primary">连接</button>
+        </div>
+
+        <!-- 文件管理面板 -->
+        <div class="file-panel" id="filePanel" style="display: none;">
+            <div class="toolbar">
+                <div class="path-bar">
+                    <span>当前路径:</span>
+                    <input type="text" id="currentPath" value="/">
+                    <button onclick="goToPath()" class="btn-small">跳转</button>
+                </div>
+                <div class="actions">
+                    <button onclick="refreshList()" class="btn-small">🔄 刷新</button>
+                    <button onclick="showUploadDialog()" class="btn-small">📤 上传</button>
+                    <button onclick="showMkdirDialog()" class="btn-small">📁 新建文件夹</button>
+                    <button onclick="disconnect()" class="btn-danger">断开连接</button>
+                </div>
+            </div>
+
+            <div class="file-list" id="fileList">
+                <div class="loading">连接中...</div>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar" id="statusBar">
+            <span id="statusText">未连接</span>
+        </div>
+    </div>
+
+    <!-- 上传对话框 -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <h3>上传文件</h3>
+            <input type="file" id="fileInput" multiple>
+            <div class="modal-actions">
+                <button onclick="uploadFiles()" class="btn-primary">上传</button>
+                <button onclick="closeModal('uploadModal')" class="btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹对话框 -->
+    <div class="modal" id="mkdirModal">
+        <div class="modal-content">
+            <h3>新建文件夹</h3>
+            <input type="text" id="newDirName" placeholder="文件夹名称">
+            <div class="modal-actions">
+                <button onclick="createDirectory()" class="btn-primary">创建</button>
+                <button onclick="closeModal('mkdirModal')" class="btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
