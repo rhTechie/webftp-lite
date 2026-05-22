@@ -32,22 +32,26 @@
 
 ### 环境要求
 
+- Linux 系统
+- 当前账号具备 `root` 或 `sudo` 权限（用于自动安装系统依赖）
+- 可访问系统软件源和 npm 仓库
 - Node.js 14.0 或更高版本
-- npm 或 yarn
 
-### 安装步骤
+### 部署流程
 
-1. **克隆或下载项目**
-
-```bash
-cd /path/to/ftp
-```
-
-2. **安装依赖**
+1. **克隆或下载项目并进入目录**
 
 ```bash
-npm install
+cd /path/to/webftp-lite
 ```
+
+2. **执行一键初始化脚本**
+
+```bash
+bash scripts/setup-linux.sh
+```
+
+该脚本会自动检查 Linux 环境、检测 `node` 与 `npm` 是否可用，并在缺失时尝试通过系统包管理器完成安装。随后脚本会根据 `package.json` 与 `package-lock.json` 安装项目运行所需依赖。
 
 3. **启动服务器**
 
@@ -57,16 +61,35 @@ npm start
 node server.js
 ```
 
+如果希望在完成环境初始化后立即启动服务，可以执行：
+
+```bash
+bash scripts/setup-linux.sh --start
+```
+
 4. **访问工具**
 
 服务器启动后，会显示访问地址：
 
 ```
-FTP Web Tool 运行在: http://0.0.0.0:3000
-局域网访问: http://<你的IP>:3000
+FTP Web Tool 运行在: http://localhost:3000
+局域网访问地址:
+- enp2s0: http://192.168.1.100:3000
 ```
 
 在浏览器中打开显示的地址即可使用。
+
+### 依赖目录说明
+
+`node_modules/` 是 Node.js 项目的本地依赖目录，用于存放项目运行所需的第三方软件包及其依赖链。本项目中的 `express`、`ws`、`basic-ftp`、`cors` 等运行时组件，均会安装到该目录中。
+
+相关文件的职责如下：
+
+- `package.json`：定义项目依赖、脚本入口和基础元数据
+- `package-lock.json`：锁定依赖的具体版本与依赖树结构
+- `node_modules/`：保存当前机器实际安装完成的依赖文件
+
+在更换 Linux 环境或迁移到新设备时，建议重新执行初始化脚本，由脚本在目标环境中重新安装依赖，而不是直接复制旧环境中的 `node_modules/`。这样可以避免由于 Node.js 版本、系统发行版差异或依赖状态不一致而导致的运行问题。
 
 ## 🚀 使用方法
 
@@ -222,6 +245,8 @@ ftp/
 ├── server.js           # 后端服务器主文件
 ├── package.json        # 项目依赖配置
 ├── README.md          # 项目说明文档
+├── scripts/           # 初始化脚本
+│   └── setup-linux.sh # Linux 环境检查与依赖安装
 └── public/            # 前端文件目录
     ├── index.html     # 主页面
     ├── style.css      # 样式文件

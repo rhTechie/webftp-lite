@@ -3,17 +3,55 @@ const { Client } = require('basic-ftp');
 const WebSocket = require('ws');
 const path = require('path');
 const cors = require('cors');
+const os = require('os');
 
 const app = express();
 const PORT = 3000;
+const HOST = '0.0.0.0';
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`FTP Web Tool 运行在: http://0.0.0.0:${PORT}`);
-  console.log(`局域网访问: http://<你的IP>:${PORT}`);
+function getLanAddresses() {
+  const interfaces = os.networkInterfaces();
+  const lanAddresses = [];
+
+  for (const [interfaceName, addresses] of Object.entries(interfaces)) {
+    for (const addressInfo of addresses || []) {
+      const family = typeof addressInfo.family === 'string'
+        ? addressInfo.family
+        : addressInfo.family === 4
+          ? 'IPv4'
+          : addressInfo.family;
+
+      if (family !== 'IPv4' || addressInfo.internal) {
+        continue;
+      }
+
+      lanAddresses.push({
+        interfaceName,
+        address: addressInfo.address
+      });
+    }
+  }
+
+  return lanAddresses;
+}
+
+const server = app.listen(PORT, HOST, () => {
+  console.log(`FTP Web Tool 运行在: http://localhost:${PORT}`);
+
+  const lanAddresses = getLanAddresses();
+  if (lanAddresses.length === 0) {
+    console.log(`局域网访问: 未检测到可用的 IPv4 地址，请手动检查本机网络配置`);
+    return;
+  }
+
+  console.log('局域网访问地址:');
+  lanAddresses.forEach(({ interfaceName, address }) => {
+    console.log(`- ${interfaceName}: http://${address}:${PORT}`);
+  });
 });
 
 const wss = new WebSocket.Server({ server });

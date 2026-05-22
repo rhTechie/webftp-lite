@@ -4,7 +4,11 @@
   "description": "Web-based FTP client",
   "main": "server.js",
   "scripts": {
+    "setup": "bash scripts/setup-linux.sh",
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
   },
   "dependencies": {
     "express": "^4.18.2",
