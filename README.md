@@ -51,14 +51,18 @@ cd /path/to/webftp-lite
 bash scripts/setup-linux.sh
 ```
 
-该脚本会自动检查 Linux 环境、检测 `node` 与 `npm` 是否可用，并在缺失时尝试通过系统包管理器完成安装。随后脚本会根据 `package.json` 与 `package-lock.json` 安装项目运行所需依赖。
+该脚本会自动检查 Linux 环境、检测 `node` 与 `npm` 是否可用，并在缺失时尝试通过系统包管理器完成安装。随后脚本会根据 `package.json` 与 `package-lock.json` 安装项目运行所需依赖；如果项目目录下不存在 `.env`，脚本还会基于 `.env.example` 自动生成默认配置文件。
 
-3. **启动服务器**
+3. **按需修改配置文件**
 
 ```bash
-npm start
-# 或者
-node server.js
+vim .env
+```
+
+4. **启动服务器**
+
+```bash
+bash scripts/manage-linux.sh start
 ```
 
 如果希望在完成环境初始化后立即启动服务，可以执行：
@@ -67,7 +71,7 @@ node server.js
 bash scripts/setup-linux.sh --start
 ```
 
-4. **访问工具**
+5. **访问工具**
 
 服务器启动后，会显示访问地址：
 
@@ -78,6 +82,28 @@ FTP Web Tool 运行在: http://localhost:3000
 ```
 
 在浏览器中打开显示的地址即可使用。
+
+### 配置文件说明
+
+项目通过 `.env` 文件集中管理运行参数。首次执行 `bash scripts/setup-linux.sh` 时，如果当前目录不存在 `.env`，脚本会自动根据 `.env.example` 生成默认配置文件。
+
+常用配置项如下：
+
+```dotenv
+PORT=3000
+DEFAULT_FTP_HOST=
+DEFAULT_FTP_PORT=21
+DEFAULT_FTP_USER=root
+DEFAULT_FTP_PASSWORD=root
+```
+
+各配置项含义如下：
+
+- `PORT`：Web 服务监听端口
+- `DEFAULT_FTP_HOST`：页面默认显示的 FTP 服务器地址
+- `DEFAULT_FTP_PORT`：页面默认显示的 FTP 端口
+- `DEFAULT_FTP_USER`：页面默认显示的 FTP 用户名
+- `DEFAULT_FTP_PASSWORD`：页面默认显示的 FTP 密码
 
 ### 依赖目录说明
 
@@ -179,21 +205,22 @@ http://服务器IP:3000
 
 ## 🔧 配置说明
 
-### 修改默认端口
+### 修改运行配置
 
-编辑 `server.js` 文件：
+直接编辑项目根目录下的 `.env` 文件，例如：
 
-```javascript
-const PORT = 3000; // 修改为你想要的端口
+```dotenv
+PORT=3000
+DEFAULT_FTP_HOST=192.168.1.10
+DEFAULT_FTP_PORT=21
+DEFAULT_FTP_USER=root
+DEFAULT_FTP_PASSWORD=root
 ```
 
-### 修改默认用户名密码
+修改配置后，执行以下命令重启服务使其生效：
 
-编辑 `public/index.html` 文件：
-
-```html
-<input type="text" id="user" value="root"> <!-- 修改默认用户名 -->
-<input type="password" id="password" value="root"> <!-- 修改默认密码 -->
+```bash
+bash scripts/manage-linux.sh restart
 ```
 
 ## 🛡️ 安全建议
@@ -231,11 +258,13 @@ FTP服务器通常有空闲超时设置（1-5分钟），本工具已实现自�
 ### 5. 停止服务器
 
 ```bash
-# 查找进程
-ps aux | grep "node server.js"
+bash scripts/manage-linux.sh stop
+```
 
-# 停止进程
-pkill -f "node server.js"
+### 6. 查看服务状态
+
+```bash
+bash scripts/manage-linux.sh status
 ```
 
 ## 📝 项目结构
@@ -244,24 +273,16 @@ pkill -f "node server.js"
 ftp/
 ├── server.js           # 后端服务器主文件
 ├── package.json        # 项目依赖配置
+├── .env.example        # 默认配置模板
 ├── README.md          # 项目说明文档
 ├── scripts/           # 初始化脚本
 │   └── setup-linux.sh # Linux 环境检查与依赖安装
+│   └── manage-linux.sh# Linux 服务管理脚本
 └── public/            # 前端文件目录
     ├── index.html     # 主页面
     ├── style.css      # 样式文件
     └── app.js         # 前端逻辑
 ```
-
-## 🔄 更新日志
-
-### v1.0.0 (2026-05-15)
-
-- ✨ 初始版本发布
-- ✅ 支持基本FTP操作
-- ✅ 实现自动重连机制
-- ✅ 现代化UI设计
-- ✅ 支持多文件上传
 
 ## 📄 许可证
 

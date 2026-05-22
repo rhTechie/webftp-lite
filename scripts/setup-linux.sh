@@ -34,7 +34,8 @@ usage() {
   2. 检查 Node.js / npm 是否可用
   3. 缺失时自动通过系统包管理器安装
   4. 安装当前项目依赖到 node_modules/
-  5. 可选: 通过 --start 安装完成后直接启动服务
+  5. 自动生成 .env 配置文件（如果不存在）
+  6. 可选: 通过 --start 安装完成后直接启动服务
 EOF
 }
 
@@ -247,6 +248,22 @@ install_project_dependencies() {
   log "项目依赖安装完成"
 }
 
+ensure_env_file() {
+  cd "${PROJECT_DIR}"
+
+  if [ -f .env ]; then
+    log "检测到 .env，保留现有配置"
+    return
+  fi
+
+  if [ ! -f .env.example ]; then
+    fail "未找到 .env.example，无法生成默认配置文件"
+  fi
+
+  cp .env.example .env
+  log "已生成默认配置文件: ${PROJECT_DIR}/.env"
+}
+
 main() {
   case "${1:-}" in
     "")
@@ -268,17 +285,19 @@ main() {
   log "项目目录: ${PROJECT_DIR}"
   ensure_node_and_npm
   install_project_dependencies
+  ensure_env_file
 
   log "环境检查完成"
   printf '\n'
   printf '下一步:\n'
-  printf '  进入项目目录后执行: npm start\n'
+  printf '  修改 .env 中的配置项（如端口、默认 FTP 账号）\n'
+  printf '  启动服务: bash scripts/manage-linux.sh start\n'
   printf '\n'
 
   if [ "${AUTO_START}" -eq 1 ]; then
     log "开始启动服务"
     cd "${PROJECT_DIR}"
-    npm start
+    bash scripts/manage-linux.sh start
   fi
 }
 

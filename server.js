@@ -1,17 +1,32 @@
 const express = require('express');
 const { Client } = require('basic-ftp');
 const WebSocket = require('ws');
+const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const os = require('os');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const DEFAULT_PORT = 3000;
+const PORT = Number.parseInt(process.env.PORT || `${DEFAULT_PORT}`, 10);
 const HOST = '0.0.0.0';
+const DEFAULT_FTP_CONFIG = {
+  host: process.env.DEFAULT_FTP_HOST || '',
+  port: Number.parseInt(process.env.DEFAULT_FTP_PORT || '21', 10),
+  user: process.env.DEFAULT_FTP_USER || 'root',
+  password: process.env.DEFAULT_FTP_PASSWORD || 'root'
+};
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    ftpDefaults: DEFAULT_FTP_CONFIG
+  });
+});
 
 function getLanAddresses() {
   const interfaces = os.networkInterfaces();
@@ -37,6 +52,31 @@ function getLanAddresses() {
   }
 
   return lanAddresses;
+}
+
+function normalizeRemotePath(remotePath = '/') {
+  const normalizedPath = path.posix.normalize(String(remotePath).replace(/\\/g, '/'));
+  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+}
+
+function normalizeRelativeUploadPath(relativePath = '') {
+  const normalizedPath = path.posix.normalize(String(relativePath).replace(/\\/g, '/'));
+
+  if (!normalizedPath || normalizedPath === '.') {
+    throw new Error('上传路径不能为空');
+  }
+
+  if (normalizedPath.startsWith('/') || normalizedPath.split('/').includes('..')) {
+    throw new Error('上传路径非法');
+  }
+
+  return normalizedPath;
+}
+
+function buildRemoteUploadPath(remotePath, filename, relativePath) {
+  const basePath = normalizeRemotePath(remotePath || '/');
+  const uploadPath = normalizeRelativeUploadPath(relativePath || filename);
+  return path.posix.join(basePath, uploadPath);
 }
 
 const server = app.listen(PORT, HOST, () => {
@@ -227,25 +267,35 @@ async function handleDownload(ws, client, payload) {
 }
 
 async function handleUpload(ws, client, payload) {
-  const { path: remotePath, data, filename } = payload;
-  try {
-    const fs = require('fs');
-    const localPath = `/tmp/${filename}`;
+  const { path: remotePath, data, filename, relativePath, refreshList } = payload;
+  const basePath = normalizeRemotePath(remotePath || '/');
+  const remoteFilePath = buildRemoteUploadPath(basePath, filename, relativePath);
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'webftp-upload-'));
+  const localPath = path.join(tempDir, path.basename(remoteFilePath));
 
+  try {
     // 将base64数据写入临时文件
     fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
+    const remoteDir = path.posix.dirname(remoteFilePath);
+    await client.ensureDir(remoteDir);
+
     // 上传到FTP服务器
-    await client.uploadFrom(localPath, `${remotePath}/${filename}`);
+    await client.uploadFrom(localPath, remoteFilePath);
 
-    // 删除临时文件
-    fs.unlinkSync(localPath);
+    ws.send(JSON.stringify({
+      type: 'success',
+      message: `上传成功: ${relativePath || filename}`,
+      refreshList: refreshList !== false
+    }));
 
-    ws.send(JSON.stringify({ type: 'success', message: '上传成功' }));
-    // 刷新目录列表
-    await handleList(ws, client, { path: remotePath });
+    if (refreshList !== false) {
+      await handleList(ws, client, { path: basePath });
+    }
   } catch (error) {
     ws.send(JSON.stringify({ type: 'error', message: `上传失败: ${error.message}` }));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

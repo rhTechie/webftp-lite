@@ -4,7 +4,12 @@
   "description": "Web-based FTP client",
   "main": "server.js",
   "scripts": {
+    "serve": "node server.js",
     "setup": "bash scripts/setup-linux.sh",
+    "manage:start": "bash scripts/manage-linux.sh start",
+    "manage:stop": "bash scripts/manage-linux.sh stop",
+    "manage:restart": "bash scripts/manage-linux.sh restart",
+    "manage:status": "bash scripts/manage-linux.sh status",
     "start": "node server.js"
   },
   "engines": {
@@ -14,6 +19,7 @@
     "express": "^4.18.2",
     "ws": "^8.14.2",
     "basic-ftp": "^5.0.3",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1"
   }
 }

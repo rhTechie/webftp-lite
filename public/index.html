@@ -21,15 +21,15 @@
             </div>
             <div class="form-group">
                 <label>端口:</label>
-                <input type="number" id="port" placeholder="21" value="21">
+                <input type="number" id="port" placeholder="21" value="">
             </div>
             <div class="form-group">
                 <label>用户名:</label>
-                <input type="text" id="user" placeholder="用户名" value="root">
+                <input type="text" id="user" placeholder="用户名" value="">
             </div>
             <div class="form-group">
                 <label>密码:</label>
-                <input type="password" id="password" placeholder="密码" value="root">
+                <input type="password" id="password" placeholder="密码" value="">
             </div>
             <button onclick="connect()" class="btn-primary">连接</button>
         </div>
@@ -64,8 +64,17 @@
     <!-- 上传对话框 -->
     <div class="modal" id="uploadModal">
         <div class="modal-content">
-            <h3>上传文件</h3>
-            <input type="file" id="fileInput" multiple>
+            <h3>上传文件或目录</h3>
+            <div class="upload-section">
+                <label for="fileInput">选择文件</label>
+                <input type="file" id="fileInput" multiple onchange="handleUploadSelection('file')">
+            </div>
+            <div class="upload-divider">或</div>
+            <div class="upload-section">
+                <label for="directoryInput">选择目录</label>
+                <input type="file" id="directoryInput" webkitdirectory directory multiple onchange="handleUploadSelection('directory')">
+            </div>
+            <div class="upload-tip">目录上传会保留所选目录的层级结构。</div>
             <div class="modal-actions">
                 <button onclick="uploadFiles()" class="btn-primary">上传</button>
                 <button onclick="closeModal('uploadModal')" class="btn-secondary">取消</button>

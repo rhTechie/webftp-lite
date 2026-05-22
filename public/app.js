@@ -2,6 +2,31 @@ let ws = null;
 let currentPath = '/';
 let isConnected = false;
 
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+async function initializeApp() {
+    await loadDefaultConfig();
+}
+
+async function loadDefaultConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error('加载默认配置失败');
+        }
+
+        const config = await response.json();
+        const ftpDefaults = config.ftpDefaults || {};
+
+        document.getElementById('host').value = ftpDefaults.host || '';
+        document.getElementById('port').value = ftpDefaults.port || 21;
+        document.getElementById('user').value = ftpDefaults.user || 'root';
+        document.getElementById('password').value = ftpDefaults.password || 'root';
+    } catch (error) {
+        updateStatus('默认配置加载失败，已使用页面内默认值');
+    }
+}
+
 function connect() {
     const host = document.getElementById('host').value;
     const port = document.getElementById('port').value;
@@ -59,7 +84,9 @@ function handleMessage(message) {
             break;
         case 'success':
             updateStatus(message.message);
-            refreshList();
+            if (message.refreshList !== false) {
+                refreshList();
+            }
             break;
         case 'error':
             updateStatus('错误: ' + message.message);
@@ -189,6 +216,7 @@ function downloadFile(filename, base64Data) {
 }
 
 function showUploadDialog() {
+    resetUploadInputs();
     document.getElementById('uploadModal').classList.add('active');
 }
 
@@ -196,34 +224,78 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
-function uploadFiles() {
-    const fileInput = document.getElementById('fileInput');
-    const files = fileInput.files;
-
-    if (files.length === 0) {
-        alert('请选择文件');
+function handleUploadSelection(type) {
+    if (type === 'file') {
+        document.getElementById('directoryInput').value = '';
         return;
     }
 
-    Array.from(files).forEach(file => {
+    document.getElementById('fileInput').value = '';
+}
+
+function resetUploadInputs() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('directoryInput').value = '';
+}
+
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const base64Data = e.target.result.split(',')[1];
+        reader.onload = (event) => {
+            resolve(event.target.result.split(',')[1]);
+        };
+        reader.onerror = () => {
+            reject(new Error(`读取文件失败: ${file.name}`));
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function uploadFiles() {
+    const fileInput = document.getElementById('fileInput');
+    const directoryInput = document.getElementById('directoryInput');
+    const directoryFiles = Array.from(directoryInput.files);
+    const selectedFiles = directoryFiles.length > 0
+        ? directoryFiles
+        : Array.from(fileInput.files);
+    const isDirectoryUpload = directoryFiles.length > 0;
+
+    if (selectedFiles.length === 0) {
+        alert('请选择文件或目录');
+        return;
+    }
+
+    closeModal('uploadModal');
+
+    try {
+        const uploadLabel = isDirectoryUpload ? '目录' : '文件';
+
+        for (let index = 0; index < selectedFiles.length; index += 1) {
+            const file = selectedFiles[index];
+            const relativePath = isDirectoryUpload
+                ? (file.webkitRelativePath || file.name)
+                : file.name;
+            const base64Data = await readFileAsBase64(file);
+
             ws.send(JSON.stringify({
                 action: 'upload',
                 payload: {
                     path: currentPath,
                     filename: file.name,
-                    data: base64Data
+                    relativePath: relativePath,
+                    data: base64Data,
+                    refreshList: index === selectedFiles.length - 1
                 }
             }));
-            updateStatus(`正在上传 ${file.name}...`);
-        };
-        reader.readAsDataURL(file);
-    });
-
-    closeModal('uploadModal');
-    fileInput.value = '';
+            updateStatus(`正在上传 (${index + 1}/${selectedFiles.length}) ${relativePath}...`);
+        }
+        updateStatus(`${uploadLabel}上传请求已发送，正在等待服务器处理...`);
+    } catch (error) {
+        alert(error.message);
+        updateStatus('上传失败');
+    } finally {
+        resetUploadInputs();
+    }
 }
 
 function showMkdirDialog() {
